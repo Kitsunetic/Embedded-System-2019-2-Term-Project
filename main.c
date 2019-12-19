@@ -17,7 +17,6 @@ fb_dev fb;
 
 // Mouse
 Mouse mouse0, mouse1;
-Color mouse0_color = {255, 0, 0}, mouse1_color = {0, 0, 255};
 
 
 int main() {
@@ -45,11 +44,11 @@ void stateBegin() {
         return -1;
     }
     
-    if(mouse_init(&mouse0, DEVICE_MOUSE0, mouse0_color) < 0) {
+    if(mouse_init(&mouse0, DEVICE_MOUSE0, (Color){0, 0, 255}) < 0) {
         perror("Mouse0 initialize error");
         return -1;
     }
-    if(mouse_init(&mouse1, DEVICE_MOUSE1, mouse1_color) < 0) {
+    if(mouse_init(&mouse1, DEVICE_MOUSE1, (Color){255, 0, 0}) < 0) {
         perror("Mouse1 initialize error");
         return -1;
     }
