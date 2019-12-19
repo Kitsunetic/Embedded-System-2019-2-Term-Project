@@ -1,17 +1,6 @@
 #ifndef __GLCD_C__
 #define __GLCD_C__
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
-#include <linux/input.h>
-#include <linux/fb.h>
-
 #include "glcd.h"
 
 int fb_init(fb_dev* dev, const char* fb_name) {
@@ -98,22 +87,6 @@ void draw(fb_dev* fb, Color color, Point point) {
     uint32_t pixel = makePixel(color);
     fb->fb_p[point.x + point.y*fb->width] = pixel;
 }
-
-
-
-int mouse_init(Mouse* mouse, const char* device_name, Color color) {
-    if((mouse->fd = open(device_name, O_RDONLY)) < 0) {
-        perror("Mouse open error");
-        return -1;
-    }
-    
-    mouse->color = color;
-    mouse->x = 0;
-    mouse->y = 0;
-    
-    return 0;
-}
-
 
 
 void releaseBitmap(Image* image) {

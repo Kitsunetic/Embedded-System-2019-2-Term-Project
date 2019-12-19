@@ -1,8 +1,20 @@
 #ifndef __GLCD_H__
 #define __GLCD_H__
 
-#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <linux/input.h>
+#include <linux/fb.h>
+
 #include "commontype.h"
+
+typedef struct input_event input_event_t;
 
 typedef struct _BITMAP {
 	unsigned short BM;
@@ -34,14 +46,8 @@ typedef struct _Color {
 } Color;
 
 typedef struct _Point {
-    int x, y;
+    float x, y;
 } Point;
-
-typedef struct _Mouse {
-    int fd;
-    unsigned int x, y;
-    Color color;
-} Mouse;
 
 typedef struct _fb_dev {
     uint32_t* fb_p;
@@ -64,10 +70,6 @@ void clearScreen(fb_dev* fb);
 
 /* Draw dot on screen */
 void draw(fb_dev* fb, Color color, Point point);
-
-
-/*  */
-int mouse_init(Mouse* mouse, const char* device_name, Color color);
 
 
 /*  */
