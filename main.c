@@ -15,8 +15,17 @@ byte state = STATE_BEGIN;
 // Frame buffer
 fb_dev fb;
 
-// Mouse
+// Mouses
 Mouse mouse0, mouse1;
+
+// Players
+Object player0, player1;
+
+// Ball
+Object ball;
+
+// Friction
+float friction;
 
 
 int main() {
@@ -57,12 +66,41 @@ void stateBegin() {
 }
 
 void stateInit() {
-    
+    // Initialize position and velocity, acceleration of players and ball
+    memset(&player0, 0x00, sizeof(player0));
+    memset(&player1, 0x00, sizeof(player1));
+    memset(&ball, 0x00, sizeof(ball));
+    player0.pos.x = fb.width * 1/4;
+    player0.pos.y = fb.height/2;
+    player0.look = LOOK_PLAYER;
+    player0.visible = true;
+    player1.pos.x = fb.width * 3/4;
+    player1.pos.y = fb.height/2;
+    player1.look = LOOK_PLAYER;
+    player1.visible = true;
+    ball.pos.x = fb.width/2;
+    ball.pos.y = fb.height/2;
+    ball.look = LOOK_BALL;
+    ball.visible = true;
     
     state = STATE_PLAYING;
 }
 
 void statePlaying() {
+    input_event_t buf;
+    
+    // Read mouse movement
+    read(mouse0.fd, &buf, sizeof(input_event_t));
+    
+    // Hit check
+    
+    // Change accelerations of players and ball
+    
+    // Move players
+    
+    // Move ball
+    
+    // Show screen
     
     
     state = STATE_GAME_FINISH;
