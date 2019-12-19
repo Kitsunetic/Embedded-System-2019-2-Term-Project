@@ -5,11 +5,17 @@
 #define DEVICE_MOUSE0   "/dev/input/mouse1"
 #define DEVICE_MOUSE1   "/dev/input/mouse2"
 
+// states
 #define STATE_BEGIN         0x00
 #define STATE_INIT          0x10
 #define STATE_PLAYING       0x20
 #define STATE_GAME_FINISH   0x21
 #define STATE_GAMEOVER      0x22
+void stateBegin();
+void stateInit();
+void statePlaying();
+void stateGameFinish();
+void stateGameOver();
 byte state = STATE_BEGIN;
 
 // Frame buffer
@@ -26,7 +32,6 @@ Object ball;
 
 // Friction
 float friction;
-
 
 int main() {
     state = STATE_BEGIN;
