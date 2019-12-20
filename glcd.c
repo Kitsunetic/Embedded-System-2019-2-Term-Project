@@ -178,4 +178,3 @@ void drawBall(fb_dev *fb, Point p, Color c) {
 }
 
 #endif
-10
