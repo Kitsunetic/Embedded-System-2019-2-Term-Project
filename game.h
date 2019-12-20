@@ -2,6 +2,7 @@
 #define __GAME_H__
 
 #include "glcd.h"
+#include "fpga.h"
 
 #define LOOK_PLAYER     0x00
 #define LOOK_BALL       0x01
@@ -54,6 +55,9 @@ Object player0, player1;
 Object ball;
 Object* objects[] = {&player0, &player1, &ball};
 #define LEN_OBJECTS 3
+
+byte winPlayer;
+int score0, score1;
 
 // Friction, gravity acceleration
 #define FRICTION    0.3

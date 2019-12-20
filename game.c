@@ -19,7 +19,11 @@ void stateBegin() {
         perror("Mouse1 initialize error");
         return -1;
     }
-    
+
+    // Initialize all FPGA devices
+    initAllDevices();
+
+    // Initialize state
     state = STATE_INIT;
 }
 
@@ -41,6 +45,9 @@ void stateInit() {
     ball.look = LOOK_BALL;
     ball.visible = true;
     
+    score0 = 0;
+    score1 = 0;
+
     state = STATE_PLAYING;
 }
 
@@ -55,6 +62,19 @@ void statePlaying() {
     Object *o0, *o1, *o;
     MouseEvent e0, e1;
     
+    // Goal check
+    if(ball.pos.x >= fb.width-ball.r && fb.height/3 <= ball.pos.y && ball.pos.y <= fb.height*2/3) {
+        // player0 win
+        state = STATE_GAME_FINISH;
+        winPlayer = 0;
+        return;
+    } else if(ball.pos.x <= ball.r && fb.height/3 <= ball.pos.y && ball.pos.y <= fb.height*2/3) {
+        // player1 win
+        state = STATE_GAME_FINISH;
+        winPlayer = 1;
+        return;
+    }
+
     // Objects hit check
     for(i = 0; i < LEN_OBJECTS-1; i++) {
         for(j = i+1; j < LEN_OBJECTS; j++) {
@@ -75,7 +95,7 @@ void statePlaying() {
             }
         }
     }
-    
+
     // Give friction
     for(i = 0; i < LEN_OBJECTS; i++) {
         if(objects[i]->v.x <= 0.05 && objects[i]->v.y <= 0.05) {
@@ -114,18 +134,49 @@ void statePlaying() {
         o->pos.x += o->v.x * TIMESCALE;
         o->pos.y += o->v.y * TIMESCALE;
         
+        // Wall hit check
+        if(o->pos.x + o->r >= fb.width) {
+            // hit right
+            o->pos.x = 2*fb.width - o->pos.x - o->r;
+            o->v.x *= -1;
+        } else if(o->pos.x - o->r <= 0) {
+            // hit left
+            o->pos.x = o->r - o->pos.x;
+            o->v.x *= -1;
+        } else if(o->pos.y + o->r >= fb.height) {
+            // hit top
+            o->pos.y = 2*fb.height - o->pos.y - o->r;
+            o->v.y *= -1;
+        } else if(o->pos.y - o->r <= 0) {
+            // hit bottom
+            o->pos.y = o->r - o->pos.y;
+            o->v.y *= -1;
+        }
+
         // Draw new object from screen
         drawCircle(&fb, o->pos, o->color, o->r);
     }
-    
-    state = STATE_GAME_FINISH;
 }
 
 void stateGameFinish() {
-    state = STATE_PLAYING;
+    // Count score
+    if(winPlayer == 0) score0++;
+    else if(winPlayer == 1) score1++;
+
+    // Update FND
+    writeFND(score0 * 100 + score1);
+
+    // Check game over
+    if(score0 + score1 >= 5) {
+        state = STATE_GAMEOVER;
+    } else {
+        state = STATE_PLAYING;
+    }
 }
 
 void stateGameOver() {
+    // Show game over screen
+
     state = STATE_INIT;
 }
 
