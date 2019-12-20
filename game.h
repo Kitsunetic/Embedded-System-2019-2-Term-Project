@@ -58,6 +58,7 @@ Object* objects[] = {&player0, &player1, &ball};
 // Friction, gravity acceleration
 #define FRICTION    0.3
 #define GRAVITY     9.8
+#define TIMESCALE   0.1
 
 /*  */
 int mouseInit(Mouse* mouse, const char* device_name, Color color);

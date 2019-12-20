@@ -45,6 +45,8 @@ void stateInit() {
 }
 
 void statePlaying() {
+    static Point pos0 = {0, 0}, pos1 = {0, 0}, pos2 = {0, 0};
+    
     input_event_t buf;
     double dx, dy, l, f, theta;
     Point v0, v1;
@@ -60,7 +62,7 @@ void statePlaying() {
             o1 = objects[j];
             dx = o0->pos.x - o1->pos.x;
             dy = o0->pos.y - o1->pos.y;
-            l = o0->r + o1->r;xx
+            l = o0->r + o1->r;
             if(dx*dx + dy*dy < l*l) {
                 m0 = (o0->m-o1->m)/(o0->m+o1->m);
                 m1 = 2*o1->m/(o0->m+o1->m);
@@ -96,16 +98,25 @@ void statePlaying() {
     player0.a.y += e0.move.y;
     player1.a.x += e1.move.x;
     player1.a.y += e1.move.y;
-    
+
     // Move objects
     for(i = 0; i < LEN_OBJECTS; i++) {
+        // Remove old object from screen
+        drawCircle(&fb, o->pos, (Color){0, 0, 0}, o->r);
+        
+        // Change velocity
         o = objects[i];
         o->v.x += o->a.x;
         o->v.y += o->a.y;
+        
+        // Move position
+        o = objects[i];
+        o->pos.x += o->v.x * TIMESCALE;
+        o->pos.y += o->v.y * TIMESCALE;
+        
+        // Draw new object from screen
+        drawCircle(&fb, o->pos, o->color, o->r);
     }
-    
-    // Show screen
-    
     
     state = STATE_GAME_FINISH;
 }
