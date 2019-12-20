@@ -57,28 +57,34 @@ typedef struct _fb_dev {
 
 
 /* Initialize frame buffer */
-int fb_init(fb_dev* dev, const char* fb_name);
+int fb_init(fb_dev *dev, const char *fb_name);
 
 /* Convert color(RGB) into 32bit pixel */
 uint32_t makePixel(Color color);
 
 /* Draw rectengular on screen */
-void makeRect(fb_dev* fb, Color color, Point left, Point right);
+void makeRect(fb_dev *fb, Color color, Point left, Point right);
 
 /* Clear screen black */
-void clearScreen(fb_dev* fb);
+void clearScreen(fb_dev *fb);
 
 /* Draw dot on screen */
-void draw(fb_dev* fb, Color color, Point point);
+void draw(fb_dev *fb, Color color, Point point);
 
 
 /*  */
-void releaseBitmap(Image* image);
+void releaseBitmap(Image *image);
 
 /*  */
 Image* readBitmap(char* filename, char opt);
 
 /*  */
-void drawBitmap(fb_dev* fb, Image* bmp, int xo, int yo, int alpha);
+void drawBitmap(fb_dev *fb, Image *bmp, int xo, int yo, int alpha);
+
+/*  */
+void drawPlayer(fb_dev* fb, Point p, Color c);
+
+/*  */
+void drawBall(fb_dev* fb, Point p, Color c);
 
 #endif

@@ -149,4 +149,33 @@ void drawBitmap(fb_dev* fb, Image* bmp, int xo, int yo, int alpha) {
     }
 }
 
+void drawPlayer(fb_dev* fb, Point p, Color c) {
+    // radius = 10
+    unsigned int pixel = makePixel(c);
+    int i;
+    int x = p.x, y = p.y;
+    int dx, dy, fx[] = {1, 3, 5, 6, 7, 8, 8, 9, 9, 10, 10, 10, 9, 9, 8, 8, 7, 6, 5, 3, 1};
+    
+    for(dy = -10; dy <= 10; dy++) {
+        for(dx = -fx[dy+10]; dx <= fx[dy+10]; dx++) {
+            fb->fb_p[(y+dy)*fb->width + (x+dx)] = pixel;
+        }
+    }
+}
+
+void drawBall(fb_dev *fb, Point p, Color c) {
+    // radius = 8
+    unsigned int pixel = makePixel(c);
+    int i;
+    int x = p.x, y = p.y;
+    int dx, dy, fx[] = {1, 3, 4, 5, 6, 7, 7, 8, 8, 8, 7, 7, 6, 5, 4, 3, 1};
+    
+    for(dy = -8; dy <= 8; dy++) {
+        for(dx = -fx[dy+8]; dx <= fx[dy+8]; dx++) {
+            fb->fb_p[(y+dy)*fb->width + (x+dx)] = pixel;
+        }
+    }
+}
+
 #endif
+10
