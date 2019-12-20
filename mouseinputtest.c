@@ -202,18 +202,18 @@ int main() {
     byte* p;
     int fd;
     byte btnLeft, btnRight, btnMiddle;
-    byte posX, posY;
+    int posX, posY;
     
     
-    fd = open("/dev/input/mouse0", O_RDONLY);
+    fd = open("/dev/input/mouse1", O_RDONLY);
     p = (byte*)&buf;
     while(1) {
         read(fd, &buf, sizeof(input_event_t));
         btnLeft = p[0] & 0x01;
         btnRight = p[0] & 0x02;
         btnMiddle = p[0] & 0x04;
-        posX = p[1];
-        posY = p[2];
+        posX = p[1] > 0x7F ? (int)p[1]-0x100 : (int)p[1];
+        posY = p[2] > 0x7F ? (int)p[2]-0x100 : (int)p[2];
         printf("X: %d, Y: %d, L: %d, R: %d, M: %d\n", posX, posY, btnLeft, btnRight, btnMiddle);
     }
 }

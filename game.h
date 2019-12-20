@@ -14,7 +14,7 @@
 /*  */
 typedef struct _Object {
     Point pos, v, a;
-    float m, r;
+    double m, r;
     byte look;
     bool visible;
     Color color;
@@ -55,11 +55,15 @@ Object ball;
 Object* objects[] = {&player0, &player1, &ball};
 #define LEN_OBJECTS 3
 
-// Friction
-float friction;
+// Friction, gravity acceleration
+#define FRICTION    0.3
+#define GRAVITY     9.8
 
 /*  */
-int mouse_init(Mouse* mouse, const char* device_name, Color color);
-void mouse_read(Mouse* mouse, MouseEvent* e);
+int mouseInit(Mouse* mouse, const char* device_name, Color color);
+void mouseRead(Mouse* mouse, MouseEvent* e);
+
+/* Give sign of value v */
+double sign(double v);
 
 #endif

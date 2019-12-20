@@ -1,6 +1,7 @@
 #ifndef __GAME_C__
 #define __GAME_C__
 
+#include <math.h>
 #include "game.h"
 
 
@@ -45,14 +46,12 @@ void stateInit() {
 
 void statePlaying() {
     input_event_t buf;
-    float dx, dy, l;
+    double dx, dy, l, f, theta;
     Point v0, v1;
-    float m0, m1;
+    double m0, m1;
     int i, j;
-    Object *o0, *o1;
-    
-    // Read mouse movement
-    read(mouse0.fd, &buf, sizeof(input_event_t));
+    Object *o0, *o1, *o;
+    MouseEvent e0, e1;
     
     // Objects hit check
     for(i = 0; i < LEN_OBJECTS-1; i++) {
@@ -61,7 +60,7 @@ void statePlaying() {
             o1 = objects[j];
             dx = o0->pos.x - o1->pos.x;
             dy = o0->pos.y - o1->pos.y;
-            l = o0->r + o1->r;
+            l = o0->r + o1->r;xx
             if(dx*dx + dy*dy < l*l) {
                 m0 = (o0->m-o1->m)/(o0->m+o1->m);
                 m1 = 2*o1->m/(o0->m+o1->m);
@@ -75,13 +74,35 @@ void statePlaying() {
         }
     }
     
-    // Change accelerations of players and ball
-    
     // Give friction
+    for(i = 0; i < LEN_OBJECTS; i++) {
+        if(objects[i]->v.x <= 0.05 && objects[i]->v.y <= 0.05) {
+            o = objects[i];
+            f = o->m*GRAVITY*FRICTION;
+            theta = atan(o->v.y/o->v.x);
+            dx = f*cos(theta);
+            dy = f*sin(theta);
+            o->a.x = -sign(o0->v.x) * dx;
+            o->a.y = -sign(o0->v.y) * dy;
+        }
+    }
     
-    // Move players
+    // Read mouse movement
+    mouseRead(&mouse0, &e0);
+    mouseRead(&mouse1, &e1);
     
-    // Move ball
+    // Change accelerations of objects
+    player0.a.x += e0.move.x;
+    player0.a.y += e0.move.y;
+    player1.a.x += e1.move.x;
+    player1.a.y += e1.move.y;
+    
+    // Move objects
+    for(i = 0; i < LEN_OBJECTS; i++) {
+        o = objects[i];
+        o->v.x += o->a.x;
+        o->v.y += o->a.y;
+    }
     
     // Show screen
     
@@ -98,7 +119,7 @@ void stateGameOver() {
 }
 
 
-int mouse_init(Mouse* mouse, const char* device_name, Color color) {
+int mouseInit(Mouse* mouse, const char* device_name, Color color) {
     if((mouse->fd = open(device_name, O_RDONLY)) < 0) {
         perror("Mouse open error");
         return -1;
@@ -107,7 +128,7 @@ int mouse_init(Mouse* mouse, const char* device_name, Color color) {
     return 0;
 }
 
-void mouse_read(Mouse* mouse, MouseEvent* e) {
+void mouseRead(Mouse* mouse, MouseEvent* e) {
     input_event_t buf;
     byte* p;
     
@@ -115,8 +136,15 @@ void mouse_read(Mouse* mouse, MouseEvent* e) {
     e->btnLeft = p[0] & 0x01;
     e->btnRight = p[0] & 0x02;
     e->btnMiddle = p[0] & 0x03;
-    e->move.x = (int)p[1];
-    e->move.y = (int)p[2];
+    e->move.x = p[1] > 0x7F ? (int)p[1]-0x100 : (int)p[1];
+    e->move.y = p[2] > 0x7F ? (int)p[2]-0x100 : (int)p[2];
+}
+
+
+double sign(double v) {
+    if      (v >= 0.05)  return  1.0;
+    else if (v == -0.05) return  0.0;
+    else                 return -1.0;
 }
 
 #endif

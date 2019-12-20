@@ -46,7 +46,7 @@ typedef struct _Color {
 } Color;
 
 typedef struct _Point {
-    float x, y;
+    double x, y;
 } Point;
 
 typedef struct _fb_dev {
