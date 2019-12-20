@@ -46,17 +46,33 @@ void stateInit() {
 void statePlaying() {
     input_event_t buf;
     float dx, dy, l;
+    Point v0, v1;
+    float m0, m1;
+    int i, j;
+    Object *o0, *o1;
     
     // Read mouse movement
     read(mouse0.fd, &buf, sizeof(input_event_t));
     
-    // Hit check - radius of players are 2
-    // Hit check - player0 : ball
-    dx = ball.pos.x - player0.pos.x;
-    dy = ball.pos.y - player0.pos.y;
-    l = dx*dx + dy*dy;
-    if(l < 4.0) {
-        
+    // Objects hit check
+    for(i = 0; i < LEN_OBJECTS-1; i++) {
+        for(j = i+1; j < LEN_OBJECTS; j++) {
+            o0 = objects[i];
+            o1 = objects[j];
+            dx = o0->pos.x - o1->pos.x;
+            dy = o0->pos.y - o1->pos.y;
+            l = o0->r + o1->r;
+            if(dx*dx + dy*dy < l*l) {
+                m0 = (o0->m-o1->m)/(o0->m+o1->m);
+                m1 = 2*o1->m/(o0->m+o1->m);
+                v0.x = o0->v.x*m0 + o1->v.x*m1;
+                v0.y = o0->v.y*m0 + o1->v.y*m1;
+                v1.x = o0->v.x*m1 - o1->v.x*m0;
+                v1.y = o0->v.y*m1 - o1->v.y*m0;
+                o0->v = v0;
+                o1->v = v1;
+            }
+        }
     }
     
     // Change accelerations of players and ball

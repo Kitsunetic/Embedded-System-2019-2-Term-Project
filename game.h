@@ -14,7 +14,7 @@
 /*  */
 typedef struct _Object {
     Point pos, v, a;
-    float m;
+    float m, r;
     byte look;
     bool visible;
     Color color;
@@ -49,11 +49,11 @@ void stateGameFinish();
 void stateGameOver();
 byte state = STATE_BEGIN;
 
-// Players
+// Objects
 Object player0, player1;
-
-// Ball
 Object ball;
+Object* objects[] = {&player0, &player1, &ball};
+#define LEN_OBJECTS 3
 
 // Friction
 float friction;
