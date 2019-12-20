@@ -52,6 +52,7 @@ void stateInit() {
 }
 
 void statePlaying() {
+    static byte screenClearCount = 0;
     static Point pos0 = {0, 0}, pos1 = {0, 0}, pos2 = {0, 0};
     
     input_event_t buf;
@@ -61,6 +62,12 @@ void statePlaying() {
     int i, j;
     Object *o0, *o1, *o;
     MouseEvent e0, e1;
+    
+    // Clear screen
+    if(screenClearCount++ > 60) {
+        clearScreen(&fb);
+        screenClearCount = 0;
+    }
     
     // Goal check
     if(ball.pos.x >= fb.width-ball.r && fb.height/3 <= ball.pos.y && ball.pos.y <= fb.height*2/3) {
@@ -172,11 +179,13 @@ void stateGameFinish() {
     } else {
         state = STATE_PLAYING;
     }
+    
+    clearScreen(&fb);
 }
 
 void stateGameOver() {
     // Show game over screen
-
+    
     state = STATE_INIT;
 }
 
