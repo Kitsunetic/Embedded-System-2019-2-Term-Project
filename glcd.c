@@ -25,7 +25,7 @@ int fb_init(fb_dev* dev, const char* fb_name) {
         return -1;
     }
     
-    dev->fb_p = (unsigned int*)mmap(0, 
+    dev->fb_p = (uint32_t*)mmap(0, 
                             st_fvs.xres * st_fvs.yres * 4,
                             PROT_READ | PROT_WRITE,
                             MAP_SHARED,
