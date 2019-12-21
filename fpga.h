@@ -17,7 +17,6 @@ struct _dev {
     int fnd;
 } dev;
 
-int initDevice(int *dev, const char *device);
 int initAllDevices();
 int writeFND(int num);
 

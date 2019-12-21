@@ -20,17 +20,17 @@ int fb_init(fb_dev* dev, const char* fb_name) {
         return -1;
     }
     
-    if((check = ioctl(fd, FBIOGET_VSCREENINFO, st_fvs)) < 0) {
+    if((check = ioctl(fd, FBIOGET_VSCREENINFO, &st_fvs)) < 0) {
         perror("Frame buffer get information error");
         return -1;
     }
     
-    dev->fb_p = (uint32_t*)mmap(0, 
-                                st_fvs.xres * st_fvs.yres * 4,
-                                PROT_READ | PROT_WRITE,
-                                MAP_SHARED,
-                                fd,
-                                0);
+    dev->fb_p = (unsigned int*)mmap(0, 
+                            st_fvs.xres * st_fvs.yres * 4,
+                            PROT_READ | PROT_WRITE,
+                            MAP_SHARED,
+                            fd,
+                            0);
     close(fd);
     
     if(dev->fb_p == MAP_FAILED) {
@@ -77,6 +77,7 @@ void clearScreen(fb_dev* fb) {
     uint32_t pixel = makePixel(color);
     
     for(y = 0; y < fb->height; y++) {
+        printf("%d, %d: %d\n", x, y, y*fb->width + x);
         for(x = 0; x < fb->width; x++) {
             fb->fb_p[y*fb->width + x] = pixel;
         }
@@ -149,12 +150,14 @@ void drawBitmap(fb_dev* fb, Image* bmp, int xo, int yo, int alpha) {
     }
 }
 
-void drawPlayer(fb_dev* fb, Point p, Color c) {
+void drawPlayer(fb_dev* fb, Point *p, Color *c) {
     // radius = 10
-    unsigned int pixel = makePixel(c);
+    unsigned int pixel = makePixel(*c);
     int i;
-    int x = p.x, y = p.y;
+    int x = (int)p->x, y = (int)p->y;
     int dx, dy, fx[] = {1, 3, 5, 6, 7, 8, 8, 9, 9, 10, 10, 10, 9, 9, 8, 8, 7, 6, 5, 3, 1};
+    
+    //printf("%f:%f\n", p->x, p->y);
     
     for(dy = -10; dy <= 10; dy++) {
         for(dx = -fx[dy+10]; dx <= fx[dy+10]; dx++) {
@@ -163,11 +166,11 @@ void drawPlayer(fb_dev* fb, Point p, Color c) {
     }
 }
 
-void drawBall(fb_dev *fb, Point p, Color c) {
+void drawBall(fb_dev *fb, Point *p, Color *c) {
     // radius = 8
-    unsigned int pixel = makePixel(c);
+    unsigned int pixel = makePixel(*c);
     int i;
-    int x = p.x, y = p.y;
+    int x = p->x, y = p->y;
     int dx, dy, fx[] = {1, 3, 4, 5, 6, 7, 7, 8, 8, 8, 7, 7, 6, 5, 4, 3, 1};
     
     for(dy = -8; dy <= 8; dy++) {

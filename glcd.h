@@ -81,7 +81,7 @@ Image* readBitmap(const char *filename);
 /*  */
 void drawBitmap(fb_dev *fb, Image *bmp, int xo, int yo, int alpha);
 
-void drawPlayer(fb_dev* fb, Point p, Color c);
-void drawBall(fb_dev* fb, Point p, Color c);
+void drawPlayer(fb_dev* fb, Point *p, Color *c);
+void drawBall(fb_dev* fb, Point *p, Color *c);
 
 #endif

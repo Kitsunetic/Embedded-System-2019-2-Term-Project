@@ -3,17 +3,14 @@
 
 #include "fpga.h"
 
-int initDevice(int *dev, const char *device) {
-    if((*dev = open(device, O_RDWR)) < 0) {
+int initAllDevices() {
+    printf("Open device %s\n", DEVICE_FND);
+    dev.fnd = open(DEVICE_FND, O_RDWR);
+    if((dev.fnd) < 0) {
         perror("Cannot open FND device");
         return -1;
     }
     return 0;
-}
-
-int initAllDevices() {
-    printf("Open device %s\n", DEVICE_FND);
-    if(initDevice(&dev.fnd, DEVICE_FND) < 0) return -1;
 }
 
 int writeFND(int num) {

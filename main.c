@@ -27,7 +27,7 @@ typedef struct _Mouse {
 
 typedef struct _MouseEvent {
     bool btnLeft, btnRight, btnMiddle;
-    Point move;
+    volatile Point move;
 } MouseEvent;
 
 // Frame buffer
@@ -62,6 +62,8 @@ int score0, score1;
 #define FRICTION    0.3
 #define GRAVITY     9.8
 #define TIMESCALE   0.1
+
+byte screenClearCount = 0;
 
 /*  */
 int mouseInit(Mouse* mouse, const char* device_name, Color color);
@@ -110,6 +112,8 @@ void stateBegin() {
 
     // Initialize state
     state = STATE_INIT;
+    
+    printf("Hardware setup complete...\n");
 }
 
 void stateInit() {
@@ -121,25 +125,32 @@ void stateInit() {
     player0.pos.y = fb.height/2;
     player0.look = LOOK_PLAYER;
     player0.visible = true;
+    player0.m = 10;
+    player0.color = (Color){255, 0, 0};
     player1.pos.x = fb.width * 3/4;
     player1.pos.y = fb.height/2;
     player1.look = LOOK_PLAYER;
     player1.visible = true;
+    player1.m = 10;
+    player1.color = (Color){0, 0, 255};
     ball.pos.x = fb.width/2;
     ball.pos.y = fb.height/2;
     ball.look = LOOK_BALL;
     ball.visible = true;
+    ball.m = 5;
+    ball.color = (Color){0, 255, 0};
+    
+    ball.v.x = 1;
     
     score0 = 0;
     score1 = 0;
 
     state = STATE_PLAYING;
+    
+    clearScreen(&fb);
 }
 
 void statePlaying() {
-    static byte screenClearCount = 0;
-    static Point pos0 = {0, 0}, pos1 = {0, 0}, pos2 = {0, 0};
-    
     input_event_t buf;
     double dx, dy, l, f, theta;
     Point v0, v1;
@@ -149,10 +160,11 @@ void statePlaying() {
     MouseEvent e0, e1;
     
     // Clear screen
-    if(screenClearCount++ > 60) {
+    /* if(screenClearCount++ > 60) {
+        printf("clear: %d\n", screenClearCount);
         clearScreen(&fb);
         screenClearCount = 0;
-    }
+    } */
     
     // Goal check
     if(ball.pos.x >= fb.width-ball.r && fb.height/3 <= ball.pos.y && ball.pos.y <= fb.height*2/3) {
@@ -168,7 +180,7 @@ void statePlaying() {
     }
 
     // Objects hit check
-    for(i = 0; i < LEN_OBJECTS-1; i++) {
+    /* for(i = 0; i < LEN_OBJECTS-1; i++) {
         for(j = i+1; j < LEN_OBJECTS; j++) {
             o0 = objects[i];
             o1 = objects[j];
@@ -186,24 +198,27 @@ void statePlaying() {
                 o1->v = v1;
             }
         }
-    }
+    } */
 
     // Give friction
+    printf("here\n");
     for(i = 0; i < LEN_OBJECTS; i++) {
-        if(objects[i]->v.x <= 0.05 && objects[i]->v.y <= 0.05) {
-            o = objects[i];
+        o = objects[i];
+        if(o->v.x <= 0.05 && o->v.y <= 0.05) {
             f = o->m*GRAVITY*FRICTION;
             theta = atan(o->v.y/o->v.x);
             dx = f*cos(theta);
             dy = f*sin(theta);
-            o->a.x = -sign(o0->v.x) * dx;
-            o->a.y = -sign(o0->v.y) * dy;
+            o->a.x = -sign(o->v.x) * dx;
+            o->a.y = -sign(o->v.y) * dy;
         }
     }
+    printf("%f, %f\n", o->pos.x, o->pos.y);
     
     // Read mouse movement
     mouseRead(&mouse0, &e0);
     mouseRead(&mouse1, &e1);
+    printf("herex\n");
     
     // Change accelerations of objects
     player0.a.x += e0.move.x;
@@ -213,6 +228,8 @@ void statePlaying() {
 
     // Move objects
     for(i = 0; i < LEN_OBJECTS; i++) {
+        o = objects[i];
+        
         // Remove old object from screen
         Color color_temp = o->color;
         o->color = (Color){0, 0, 0};
@@ -220,12 +237,10 @@ void statePlaying() {
         o->color = color_temp;
         
         // Change velocity
-        o = objects[i];
         o->v.x += o->a.x;
         o->v.y += o->a.y;
         
-        // Move position
-        o = objects[i];
+        /* // Move position
         o->pos.x += o->v.x * TIMESCALE;
         o->pos.y += o->v.y * TIMESCALE;
         
@@ -246,7 +261,7 @@ void statePlaying() {
             // hit bottom
             o->pos.y = o->r - o->pos.y;
             o->v.y *= -1;
-        }
+        } */
 
         // Draw new object from screen
         drawObject(&fb, o);
@@ -295,8 +310,8 @@ void mouseRead(Mouse* mouse, MouseEvent* e) {
     e->btnLeft = p[0] & 0x01;
     e->btnRight = p[0] & 0x02;
     e->btnMiddle = p[0] & 0x03;
-    e->move.x = p[1] > 0x7F ? (int)p[1]-0x100 : (int)p[1];
-    e->move.y = p[2] > 0x7F ? (int)p[2]-0x100 : (int)p[2];
+    e->move.x = p[1] > 0x7F ? p[1]-0x100 : p[1];
+    e->move.y = p[2] > 0x7F ? p[2]-0x100 : p[2];
 }
 
 
@@ -309,7 +324,7 @@ double sign(double v) {
 
 void drawObject(fb_dev *fb, Object *obj) {
     switch(obj->look) {
-        case LOOK_PLAYER: drawPlayer(fb, obj->pos, obj->color); break;
-        case LOOK_BALL: drawBall(fb, obj->pos, obj->color); break;
+        case LOOK_PLAYER: drawPlayer(fb, &obj->pos, &obj->color); break;
+        case LOOK_BALL: drawBall(fb, &obj->pos, &obj->color); break;
     }
 }
