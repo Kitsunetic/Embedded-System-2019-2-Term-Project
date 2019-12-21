@@ -1,15 +1,21 @@
 CC = arm-linux-gnueabihf-gcc
 CFLAGS = -c
-LDFLAGS = -lpthread -lrt
+LDFLAGS = -lpthread -lrt -lm
 TARGET = hockey.out
 
-app: main.o glcd.o
+all: main.o fpga.o glcd.o commontype.o
 	$(CC) -o $(TARGET) $^ $(LDFLAGS)
 
 main.o: main.c
 	$(CC) $(CFLAGS) $^
 
 glcd.o: glcd.c
+	$(CC) $(CFLAGS) $^
+	
+fpga.o: fpga.c
+	$(CC) $(CFLAGS) $^
+	
+commontype.o: commontype.c
 	$(CC) $(CFLAGS) $^
 
 clean:
@@ -20,3 +26,4 @@ clean:
 	rm -rf modules.order
 	rm -rf .interface*
 	rm -rf .tmp*
+	rm -rf *.gch

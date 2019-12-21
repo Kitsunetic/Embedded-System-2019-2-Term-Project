@@ -85,7 +85,7 @@ void clearScreen(fb_dev* fb) {
 
 void draw(fb_dev* fb, Color color, Point point) {
     uint32_t pixel = makePixel(color);
-    fb->fb_p[point.x + point.y*fb->width] = pixel;
+    fb->fb_p[(int)(point.x + point.y*fb->width)] = pixel;
 }
 
 
@@ -94,7 +94,7 @@ void releaseBitmap(Image* image) {
     free(image);
 }
 
-Image* readBitmap(char* filename, char opt) {
+Image* readBitmap(const char *filename) {
     FILE *fp;
     unsigned int *bmp, *temp1, *temp2;
     int resval;
@@ -102,7 +102,7 @@ Image* readBitmap(char* filename, char opt) {
     Bitmap bitmap;
     Image *retval;
     
-    fp = fopen(filename, 'r');
+    fp = fopen(filename, "r");
     if(fp < 0) {
         perror("Bitmap file open failed.");
         return (Image*)-1;

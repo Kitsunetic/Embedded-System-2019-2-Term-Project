@@ -76,15 +76,12 @@ void draw(fb_dev *fb, Color color, Point point);
 void releaseBitmap(Image *image);
 
 /*  */
-Image* readBitmap(char* filename, char opt);
+Image* readBitmap(const char *filename);
 
 /*  */
 void drawBitmap(fb_dev *fb, Image *bmp, int xo, int yo, int alpha);
 
-/*  */
 void drawPlayer(fb_dev* fb, Point p, Color c);
-
-/*  */
 void drawBall(fb_dev* fb, Point p, Color c);
 
 #endif
