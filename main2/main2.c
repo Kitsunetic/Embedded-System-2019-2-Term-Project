@@ -25,9 +25,9 @@
 #define STATE_GAME_FINISH   21
 #define STATE_GAMEOVER      22
 
-#define BALL_R              8
+#define BALL_R              40
 #define BALL_M              8
-#define PLAYER_R            10
+#define PLAYER_R            40
 #define PLAYER_M            10
 
 typedef unsigned char byte;
@@ -89,7 +89,7 @@ void readMouse(int fd, volatile struct MouseEvent* e) {
     e->btnRight = p[0] & 0x02;
     e->btnMiddle = p[0] & 0x03;
     e->x = p[1] > 0x7F ? (double)p[1]-0x100 : (double)p[1];
-    e->y = p[2] > 0x7F ? (double)p[2]-0x100 : (double)p[2];
+    e->y = p[2] > 0x7F ? (double)0x100-p[2] : (double)(-p[2]);
 }
 void* t_mouse1_entry(void *arg) {
     while(1) readMouse(mouse1_fd, &mouse1_e);
@@ -188,10 +188,10 @@ void statePlaying() {
     
     struct input_event buf;
     double dx, dy, dvx, dvy, len, force, theta, m1, m2;
-    int i;
+    int i, kx, ky, p1x, p1y, p2x, p2y, bx, by;
     
     // Clear screen
-    if(++clearScreenCounter > 10) {
+    if(++clearScreenCounter > 500) {
         clearScreen(&fb);
         clearScreenCounter = 0;
     }
@@ -221,98 +221,46 @@ void statePlaying() {
     dx = p1.x-ball.x;
     dy = p1.y-ball.y;
     if(dx*dx + dy*dy <= BALL_R*BALL_R) {
-        m1 = (PLAYER_M-BALL_M) / (PLAYER_M+BALL_M);
+        /* m1 = (PLAYER_M-BALL_M) / (PLAYER_M+BALL_M);
         m2 = 2*BALL_M / (PLAYER_M+BALL_M);
-        dvx = p1.vx*m1 + p2.vx*m2;
-        dvy = p1.vy*m1 + p2.vy*m2;
-        ball.vx = p1.vx*m2 - p2.vx*m1;
-        ball.vy = p1.vy*m2 - p2.vy*m1;
+        dvx = p1.vx*m1 + ball.vx*m2;
+        dvy = p1.vy*m1 + ball.vy*m2;
+        ball.vx = p1.vx*m2 - ball.vx*m1;
+        ball.vy = p1.vy*m2 - ball.vy*m1;
         p1.vx = dvx;
-        p1.vy = dvy;
+        p1.vy = dvy; */
+        dswap(&p1.vx, &ball.vx);
+        dswap(&p1.vy, &ball.vy);
     }
     // p2:ball
     dx = p2.x-ball.x;
     dy = p2.y-ball.y;
     if(dx*dx + dy*dy <= BALL_R*BALL_R) {
-        m1 = (PLAYER_M-BALL_M) / (PLAYER_M+BALL_M);
+        /* m1 = (PLAYER_M-BALL_M) / (PLAYER_M+BALL_M);
         m2 = 2*BALL_M / (PLAYER_M+BALL_M);
         dvx = p2.vx*m1 + ball.vx*m2;
         dvy = p2.vy*m1 + ball.vy*m2;
         ball.vx = p2.vx*m2 - ball.vx*m1;
         ball.vy = p2.vy*m2 - ball.vy*m1;
         p2.vx = dvx;
-        p2.vy = dvy;
-    }
-    
-    // Wall hit check
-    if(p1.x >= fb.width - PLAYER_R) {
-        p1.vx *= -1;
-        p1.ax *= -1;
-        p1.x = fb.width - PLAYER_R;
-    } else if(p1.x <= PLAYER_R) {
-        p1.vx *= -1;
-        p1.ax *= -1;
-        p1.x = PLAYER_R;
-    }
-    if(p1.y >= fb.height - PLAYER_R) {
-        p1.vy *= -1;
-        p1.ay *= -1;
-        p1.y = fb.height - PLAYER_R;
-    } else if(p1.y <= PLAYER_R) {
-        p1.vy *= -1;
-        p1.ay *= -1;
-        p1.y = PLAYER_R;
-    }
-    if(p2.x >= fb.width - PLAYER_R) {
-        p2.vx *= -1;
-        p2.ax *= -1;
-        p2.x = fb.width - PLAYER_R;
-    } else if(p2.x <= PLAYER_R) {
-        p2.vx *= -1;
-        p2.ax *= -1;
-        p2.x = PLAYER_R;
-    }
-    if(p2.y >= fb.height - PLAYER_R) {
-        p2.vy *= -1;
-        p2.ay *= -1;
-        p2.y = fb.height - PLAYER_R;
-    } else if(p2.y <= PLAYER_R) {
-        p2.vy *= -1;
-        p2.ay *= -1;
-        p2.y = PLAYER_R;
-    }
-    if(ball.x >= fb.width - PLAYER_R) {
-        ball.vx *= -1;
-        ball.ax *= -1;
-        ball.x = fb.width - PLAYER_R;
-    } else if(ball.x <= PLAYER_R) {
-        ball.vx *= -1;
-        ball.ax *= -1;
-        ball.x = PLAYER_R;
-    }
-    if(ball.y >= fb.height - PLAYER_R) {
-        ball.vy *= -1;
-        ball.ay *= -1;
-        ball.y = fb.height - PLAYER_R;
-    } else if(ball.y <= PLAYER_R) {
-        ball.vy *= -1;
-        ball.ay *= -1;
-        ball.y = PLAYER_R;
+        p2.vy = dvy; */
+        dswap(&p2.vx, &ball.vx);
+        dswap(&p2.vy, &ball.vy);
     }
     
     // Give friction
-    p1.vx *= 0.99;
-    p1.vy *= 0.99;
-    p2.vx *= 0.99;
-    p2.vy *= 0.99;
-    ball.vx *= 0.99;
-    ball.vy *= 0.99;
-    p1.ax *= 0.1;
-    p1.ay *= 0.1;
-    p2.ax *= 0.1;
-    p2.ay *= 0.1;
-    ball.ax *= 0.1;
-    ball.ay *= 0.1;
+    p1.vx   *= 0.999;
+    p1.vy   *= 0.999;
+    p2.vx   *= 0.999;
+    p2.vy   *= 0.999;
+    ball.vx *= 0.999;
+    ball.vy *= 0.999;
+    p1.ax   *= 0.5;
+    p1.ay   *= 0.5;
+    p2.ax   *= 0.5;
+    p2.ay   *= 0.5;
+    ball.ax *= 0.5;
+    ball.ay *= 0.5;
     
     // Change acceleration using mouse
     p1.ax = mouse1_e.x;
@@ -333,7 +281,20 @@ void statePlaying() {
     ball.vy += TIMESCALE * ball.ay;
     
     // Remove player and ball from screen
-    
+    p1x = p1.x; p1y = p1.y;
+    p2x = p2.x; p2y = p2.y;
+    for(ky = -10; ky <= 10; ky++) {
+        for(kx = -player_fx[ky+10]; kx <= player_fx[ky+10]; kx++) {
+            fb.fb_p[(p1y+ky)*fb.width + (p1x+kx)] = 0;
+            fb.fb_p[(p2y+ky)*fb.width + (p2x+kx)] = 0;
+        }
+    }
+    bx = ball.x; by = ball.y;
+    for(ky = -8; ky <= 8; ky++) {
+        for(kx = -player_fx[ky+8]; kx <= player_fx[ky+8]; kx++) {
+            fb.fb_p[(by+ky)*fb.width + (bx+kx)] = 0;
+        }
+    }
     
     // Move objects
     p1.x += TIMESCALE * p1.vx;
@@ -343,8 +304,81 @@ void statePlaying() {
     ball.x += TIMESCALE * ball.vx;
     ball.y += TIMESCALE * ball.vy;
     
-    // Draw player and ball from screen
     
+    // Wall hit check
+    if(p1.x >= fb.width - PLAYER_R*2) {
+        p1.vx *= -1;
+        p1.ax *= -1;
+        p1.x = fb.width - PLAYER_R*2;
+    } else if(p1.x <= PLAYER_R*2) {
+        p1.vx *= -1;
+        p1.ax *= -1;
+        p1.x = PLAYER_R*2;
+    }
+    if(p1.y >= fb.height - PLAYER_R*2) {
+        p1.vy *= -1;
+        p1.ay *= -1;
+        p1.y = fb.height - PLAYER_R*2;
+    } else if(p1.y <= PLAYER_R*2) {
+        p1.vy *= -1;
+        p1.ay *= -1;
+        p1.y = PLAYER_R*2;
+    }
+    if(p2.x >= fb.width - PLAYER_R*2) {
+        p2.vx *= -1;
+        p2.ax *= -1;
+        p2.x = fb.width - PLAYER_R*2;
+    } else if(p2.x <= PLAYER_R*2) {
+        p2.vx *= -1;
+        p2.ax *= -1;
+        p2.x = PLAYER_R*2;
+    }
+    if(p2.y >= fb.height - PLAYER_R*2) {
+        p2.vy *= -1;
+        p2.ay *= -1;
+        p2.y = fb.height - PLAYER_R*2;
+    } else if(p2.y <= PLAYER_R*2) {
+        p2.vy *= -1;
+        p2.ay *= -1;
+        p2.y = PLAYER_R*2;
+    }
+    if(ball.x >= fb.width - PLAYER_R*2) {
+        ball.vx *= -1;
+        ball.ax *= -1;
+        ball.x = fb.width - PLAYER_R*2;
+    } else if(ball.x <= PLAYER_R*2) {
+        ball.vx *= -1;
+        ball.ax *= -1;
+        ball.x = PLAYER_R*2;
+    }
+    if(ball.y >= fb.height - PLAYER_R*2) {
+        ball.vy *= -1;
+        ball.ay *= -1;
+        ball.y = fb.height - PLAYER_R*2;
+    } else if(ball.y <= PLAYER_R*2) {
+        ball.vy *= -1;
+        ball.ay *= -1;
+        ball.y = PLAYER_R*2;
+    }
+    
+    // Draw player and ball from screen
+    p1x = p1.x; p1y = p1.y;
+    p2x = p2.x; p2y = p2.y;
+    uint32_t p1c = makePixel(255, 0, 0);
+    uint32_t p2c = makePixel(0, 0, 255);
+    for(ky = -10; ky <= 10; ky++) {
+        for(kx = -player_fx[ky+10]; kx <= player_fx[ky+10]; kx++) {
+            fb.fb_p[(p1y+ky)*fb.width + (p1x+kx)] = p1c;
+            fb.fb_p[(p2y+ky)*fb.width + (p2x+kx)] = p2c;
+        }
+    }
+    bx = ball.x; by = ball.y;
+    uint32_t bc = makePixel(0, 255, 0);
+    for(ky = -8; ky <= 8; ky++) {
+        for(kx = -player_fx[ky+8]; kx <= player_fx[ky+8]; kx++) {
+            fb.fb_p[(by+ky)*fb.width + (bx+kx)] = bc;
+        }
+    }
     
     // test
     printf("p1(%f, %f) : [%f, %f] : [%f, %f] : [%f, %f]\n", p1.x, p1.y, p1.vx, p1.vy, p1.ax, p1.ay, mouse1_e.x, mouse1_e.y);
