@@ -12,10 +12,12 @@
 #include <stdint.h>
 #include <pthread.h>
 
-#define FRAME_BUFFER    "/dev/fb0"
-#define DEVICE_MOUSE1   "/dev/input/mouse1"
-#define DEVICE_MOUSE2   "/dev/input/mouse2"
-#define DEVICE_FND      "/dev/fpga_fnd"
+#define TIMESCALE           0.1
+
+#define FRAME_BUFFER        "/dev/fb0"
+#define DEVICE_MOUSE1       "/dev/input/mouse1"
+#define DEVICE_MOUSE2       "/dev/input/mouse2"
+#define DEVICE_FND          "/dev/fpga_fnd"
 
 #define STATE_BEGIN         0
 #define STATE_INIT          10
@@ -24,7 +26,9 @@
 #define STATE_GAMEOVER      22
 
 #define BALL_R              8
+#define BALL_M              8
 #define PLAYER_R            10
+#define PLAYER_M            10
 
 typedef unsigned char byte;
 struct FB {
@@ -34,18 +38,16 @@ struct FB {
 };
 struct Player {
     double x, y, vx, vy, ax, ay;
-    int m;
     uint32_t pixel;
     byte score;
 };
 struct Ball {
     double x, y, vx, vy, ax, ay;
-    int m;
     uint32_t pixel;
 };
 struct MouseEvent {
     byte btnLeft, btnRight, btnMiddle;
-    byte x, y;
+    double x, y;
 };
 
 struct FB fb;
@@ -62,6 +64,12 @@ int mouse1_fd, mouse2_fd;
 volatile struct MouseEvent mouse1_e, mouse2_e;
 int fnd_fd;
 
+
+void dswap(double *a, double *b) {
+    double temp = *b;
+    *b = *a;
+    *a = temp;
+}
 
 uint32_t makePixel(byte r, byte g, byte b) {
     uint32_t temp;
@@ -80,8 +88,8 @@ void readMouse(int fd, volatile struct MouseEvent* e) {
     e->btnLeft = p[0] & 0x01;
     e->btnRight = p[0] & 0x02;
     e->btnMiddle = p[0] & 0x03;
-    e->x = p[1] > 0x7F ? p[1]-0x100 : p[1];
-    e->y = p[2] > 0x7F ? p[2]-0x100 : p[2];
+    e->x = p[1] > 0x7F ? (double)p[1]-0x100 : (double)p[1];
+    e->y = p[2] > 0x7F ? (double)p[2]-0x100 : (double)p[2];
 }
 void* t_mouse1_entry(void *arg) {
     while(1) readMouse(mouse1_fd, &mouse1_e);
@@ -129,11 +137,11 @@ void stateBegin() {
         perror("Mouse1 open error");
         exit(1);
     }
-    mouse2_fd = open(DEVICE_MOUSE2, O_RDONLY);
+    /* mouse2_fd = open(DEVICE_MOUSE2, O_RDONLY);
     if(mouse2_fd < 0) {
         perror("Mouse2 open error");
         exit(1);
-    }
+    } */
     
     // Load FND
     fnd_fd = open(DEVICE_FND, O_RDONLY);
@@ -152,7 +160,6 @@ void stateBegin() {
 void stateInit() {
     p1.x = fb.width * 1/4;
     p1.y = fb.height / 2;
-    p1.m = 10;
     p1.vx = 0;
     p1.vy = 0;
     p1.ax = 0;
@@ -160,7 +167,6 @@ void stateInit() {
     p1.pixel = makePixel(255, 0, 0);
     p2.x = fb.width * 3/4;
     p2.y = fb.height / 2;
-    p2.m = 10;
     p2.vx = 0;
     p2.vy = 0;
     p2.ax = 0;
@@ -168,7 +174,6 @@ void stateInit() {
     p2.pixel = makePixel(0, 0, 255);
     ball.x = fb.width * 1/2;
     ball.y = fb.height / 2;
-    ball.m = 10;
     ball.vx = 0;
     ball.vy = 0;
     ball.ax = 0;
@@ -182,11 +187,8 @@ void statePlaying() {
     static int clearScreenCounter = 0;
     
     struct input_event buf;
-    double dx, dy, dvx, dvy, len, force, theta;
+    double dx, dy, dvx, dvy, len, force, theta, m1, m2;
     int i;
-    
-    // test
-    printf("%d:%d, %d:%d\n", mouse1_e.x, mouse1_e.y, mouse2_e.x, mouse2_e.y);
     
     // Clear screen
     if(++clearScreenCounter > 10) {
@@ -206,6 +208,146 @@ void statePlaying() {
         win_player = 2;
         return;
     }
+    
+    // Object hit check
+    // p1:p2
+    dx = p1.x-p2.x;
+    dy = p1.y-p2.y;
+    if(dx*dx + dy*dy <= PLAYER_R*PLAYER_R) {
+        dswap(&p1.vx, &p2.vx);
+        dswap(&p1.vy, &p2.vy);
+    }
+    // p1:ball
+    dx = p1.x-ball.x;
+    dy = p1.y-ball.y;
+    if(dx*dx + dy*dy <= BALL_R*BALL_R) {
+        m1 = (PLAYER_M-BALL_M) / (PLAYER_M+BALL_M);
+        m2 = 2*BALL_M / (PLAYER_M+BALL_M);
+        dvx = p1.vx*m1 + p2.vx*m2;
+        dvy = p1.vy*m1 + p2.vy*m2;
+        ball.vx = p1.vx*m2 - p2.vx*m1;
+        ball.vy = p1.vy*m2 - p2.vy*m1;
+        p1.vx = dvx;
+        p1.vy = dvy;
+    }
+    // p2:ball
+    dx = p2.x-ball.x;
+    dy = p2.y-ball.y;
+    if(dx*dx + dy*dy <= BALL_R*BALL_R) {
+        m1 = (PLAYER_M-BALL_M) / (PLAYER_M+BALL_M);
+        m2 = 2*BALL_M / (PLAYER_M+BALL_M);
+        dvx = p2.vx*m1 + ball.vx*m2;
+        dvy = p2.vy*m1 + ball.vy*m2;
+        ball.vx = p2.vx*m2 - ball.vx*m1;
+        ball.vy = p2.vy*m2 - ball.vy*m1;
+        p2.vx = dvx;
+        p2.vy = dvy;
+    }
+    
+    // Wall hit check
+    if(p1.x >= fb.width - PLAYER_R) {
+        p1.vx *= -1;
+        p1.ax *= -1;
+        p1.x = fb.width - PLAYER_R;
+    } else if(p1.x <= PLAYER_R) {
+        p1.vx *= -1;
+        p1.ax *= -1;
+        p1.x = PLAYER_R;
+    }
+    if(p1.y >= fb.height - PLAYER_R) {
+        p1.vy *= -1;
+        p1.ay *= -1;
+        p1.y = fb.height - PLAYER_R;
+    } else if(p1.y <= PLAYER_R) {
+        p1.vy *= -1;
+        p1.ay *= -1;
+        p1.y = PLAYER_R;
+    }
+    if(p2.x >= fb.width - PLAYER_R) {
+        p2.vx *= -1;
+        p2.ax *= -1;
+        p2.x = fb.width - PLAYER_R;
+    } else if(p2.x <= PLAYER_R) {
+        p2.vx *= -1;
+        p2.ax *= -1;
+        p2.x = PLAYER_R;
+    }
+    if(p2.y >= fb.height - PLAYER_R) {
+        p2.vy *= -1;
+        p2.ay *= -1;
+        p2.y = fb.height - PLAYER_R;
+    } else if(p2.y <= PLAYER_R) {
+        p2.vy *= -1;
+        p2.ay *= -1;
+        p2.y = PLAYER_R;
+    }
+    if(ball.x >= fb.width - PLAYER_R) {
+        ball.vx *= -1;
+        ball.ax *= -1;
+        ball.x = fb.width - PLAYER_R;
+    } else if(ball.x <= PLAYER_R) {
+        ball.vx *= -1;
+        ball.ax *= -1;
+        ball.x = PLAYER_R;
+    }
+    if(ball.y >= fb.height - PLAYER_R) {
+        ball.vy *= -1;
+        ball.ay *= -1;
+        ball.y = fb.height - PLAYER_R;
+    } else if(ball.y <= PLAYER_R) {
+        ball.vy *= -1;
+        ball.ay *= -1;
+        ball.y = PLAYER_R;
+    }
+    
+    // Give friction
+    p1.vx *= 0.99;
+    p1.vy *= 0.99;
+    p2.vx *= 0.99;
+    p2.vy *= 0.99;
+    ball.vx *= 0.99;
+    ball.vy *= 0.99;
+    p1.ax *= 0.1;
+    p1.ay *= 0.1;
+    p2.ax *= 0.1;
+    p2.ay *= 0.1;
+    ball.ax *= 0.1;
+    ball.ay *= 0.1;
+    
+    // Change acceleration using mouse
+    p1.ax = mouse1_e.x;
+    p1.ay = mouse1_e.y;
+    p2.ax = mouse2_e.x;
+    p2.ay = mouse2_e.y;
+    mouse1_e.x = 0;
+    mouse1_e.y = 0;
+    mouse2_e.x = 0;
+    mouse2_e.y = 0;
+    
+    // Change velocity
+    p1.vx += TIMESCALE * p1.ax;
+    p1.vy += TIMESCALE * p1.ay;
+    p2.vx += TIMESCALE * p2.ax;
+    p2.vy += TIMESCALE * p2.ay;
+    ball.vx += TIMESCALE * ball.ax;
+    ball.vy += TIMESCALE * ball.ay;
+    
+    // Remove player and ball from screen
+    
+    
+    // Move objects
+    p1.x += TIMESCALE * p1.vx;
+    p1.y += TIMESCALE * p1.vy;
+    p2.x += TIMESCALE * p2.vx;
+    p2.y += TIMESCALE * p2.vy;
+    ball.x += TIMESCALE * ball.vx;
+    ball.y += TIMESCALE * ball.vy;
+    
+    // Draw player and ball from screen
+    
+    
+    // test
+    printf("p1(%f, %f) : [%f, %f] : [%f, %f] : [%f, %f]\n", p1.x, p1.y, p1.vx, p1.vy, p1.ax, p1.ay, mouse1_e.x, mouse1_e.y);
 }
 void stateGameFinish() {
     
