@@ -39,12 +39,10 @@ struct FB {
 };
 struct Player {
     double x, y, vx, vy, ax, ay;
-    uint32_t pixel;
     byte score;
 };
 struct Ball {
     double x, y, vx, vy, ax, ay;
-    uint32_t pixel;
 };
 struct MouseEvent {
     byte btnLeft, btnRight, btnMiddle;
@@ -64,6 +62,27 @@ int state = STATE_BEGIN;
 int mouse1_fd, mouse2_fd;
 volatile struct MouseEvent mouse1_e, mouse2_e;
 int fnd_fd;
+
+int fnd_write(int num) {
+    byte ret, data[4];
+    
+    if(num < 0) num *= -1;
+    data[0] = num/1000;
+    num %= 1000;
+    data[1] = num/100;
+    num %= 100;
+    data[2] = num/10;
+    num %= 10;
+    data[3] = num;
+    printf("num: %d, %d, %d, %d, %d\n", num, data[0], data[1], data[2], data[3]);
+    
+    ret = write(fnd_fd, &data, 4);
+    if(ret < 0) {
+        perror("FND write error");
+        return -1;
+    }
+    return 0;
+}
 
 
 void dswap(double *a, double *b) {
@@ -145,7 +164,7 @@ void stateBegin() {
     } */
     
     // Load FND
-    fnd_fd = open(DEVICE_FND, O_RDONLY);
+    fnd_fd = open(DEVICE_FND, O_RDWR);
     if(fnd_fd < 0) {
         perror("FND open error");
         exit(1);
@@ -154,6 +173,12 @@ void stateBegin() {
     // Make thread
     pthread_create(&t_mouse1, NULL, t_mouse1_entry, 0);
     pthread_create(&t_mouse2, NULL, t_mouse2_entry, 0);
+    
+    // Initialize score
+    p1.score = 0;
+    p2.score = 0;
+    
+    fnd_write(0);
     
     printf("Load HW complete. Go to state init.\n");
     state = STATE_INIT;
@@ -165,21 +190,20 @@ void stateInit() {
     p1.vy = 0;
     p1.ax = 0;
     p1.ay = 0;
-    p1.pixel = makePixel(255, 0, 0);
     p2.x = fb.width * 3/4;
     p2.y = fb.height / 2;
     p2.vx = 0;
     p2.vy = 0;
     p2.ax = 0;
     p2.ay = 0;
-    p2.pixel = makePixel(0, 0, 255);
     ball.x = fb.width * 1/2;
     ball.y = fb.height / 2;
     ball.vx = 0;
     ball.vy = 0;
     ball.ax = 0;
     ball.ay = 0;
-    ball.pixel = makePixel(0, 255, 0);
+    
+    clearScreen(&fb);
     
     printf("Initialize complete. Go to state playing.\n");
     state = STATE_PLAYING;
@@ -199,13 +223,13 @@ void statePlaying() {
     }
     
     // Goal check
-    if(ball.x >= fb.width-BALL_R*3 && fb.height*2/4 <= ball.y && ball.y <= fb.height*3/4) {
-        // player0 win
+    if(ball.x >= fb.width-PLAYER_R*3 && fb.height*3/8 <= ball.y && ball.y <= fb.height*5/8) {
+        // player1 win
         state = STATE_GAME_FINISH;
         win_player = 1;
         return;
-    } else if(ball.x <= BALL_R*3 && fb.height*2/4 <= ball.y && ball.y <= fb.height*3/4) {
-        // player1 win
+    } else if(ball.x <= PLAYER_R*3 && fb.height*3/8 <= ball.y && ball.y <= fb.height*5/8) {
+        // player2 win
         state = STATE_GAME_FINISH;
         win_player = 2;
         return;
@@ -215,14 +239,14 @@ void statePlaying() {
     // p1:p2
     dx = p1.x-p2.x;
     dy = p1.y-p2.y;
-    if(dx*dx + dy*dy <= PLAYER_R*PLAYER_R) {
+    if(dx*dx + dy*dy <= 2*PLAYER_R*PLAYER_R) {
         dswap(&p1.vx, &p2.vx);
         dswap(&p1.vy, &p2.vy);
     }
     // p1:ball
     dx = p1.x-ball.x;
     dy = p1.y-ball.y;
-    if(dx*dx + dy*dy <= BALL_R*BALL_R) {
+    if(dx*dx + dy*dy <= 2*PLAYER_R*PLAYER_R) {
         /* m1 = (PLAYER_M-BALL_M) / (PLAYER_M+BALL_M);
         m2 = 2*BALL_M / (PLAYER_M+BALL_M);
         dvx = p1.vx*m1 + ball.vx*m2;
@@ -237,7 +261,7 @@ void statePlaying() {
     // p2:ball
     dx = p2.x-ball.x;
     dy = p2.y-ball.y;
-    if(dx*dx + dy*dy <= BALL_R*BALL_R) {
+    if(dx*dx + dy*dy <= 2*PLAYER_R*PLAYER_R) {
         /* m1 = (PLAYER_M-BALL_M) / (PLAYER_M+BALL_M);
         m2 = 2*BALL_M / (PLAYER_M+BALL_M);
         dvx = p2.vx*m1 + ball.vx*m2;
@@ -251,24 +275,24 @@ void statePlaying() {
     }
     
     // Give friction
-    p1.vx   *= 0.999;
-    p1.vy   *= 0.999;
-    p2.vx   *= 0.999;
-    p2.vy   *= 0.999;
+    p1.vx   *= 0.992;
+    p1.vy   *= 0.992;
+    p2.vx   *= 0.992;
+    p2.vy   *= 0.992;
     ball.vx *= 0.999;
     ball.vy *= 0.999;
     p1.ax   *= 0.1;
     p1.ay   *= 0.1;
     p2.ax   *= 0.1;
     p2.ay   *= 0.1;
-    ball.ax *= 0.1;
-    ball.ay *= 0.1;
+    ball.ax *= 0.5;
+    ball.ay *= 0.5;
     
     // Change acceleration using mouse
-    p1.ax = mouse1_e.x*0.3;
-    p1.ay = mouse1_e.y*0.3;
-    p2.ax = mouse2_e.x*0.3;
-    p2.ay = mouse2_e.y*0.3;
+    p1.ax = mouse1_e.x*0.45;
+    p1.ay = mouse1_e.y*0.45;
+    p2.ax = mouse2_e.x*0.45;
+    p2.ay = mouse2_e.y*0.45;
     mouse1_e.x = 0;
     mouse1_e.y = 0;
     mouse2_e.x = 0;
@@ -289,9 +313,9 @@ void statePlaying() {
     for(ky = -PLAYER_R; ky <= PLAYER_R; ky++) {
         for(kx = -PLAYER_R; kx <= PLAYER_R; kx++) {
             if(CIRCLE[(ky+PLAYER_R)*81 + (kx+PLAYER_R)]) {
-                fb.fb_p[(p1y-ky)*fb.width + (p1x-kx)] = 0;
-                fb.fb_p[(p2y-ky)*fb.width + (p2x-kx)] = 0;
-                fb.fb_p[(by-ky)*fb.width + (bx-kx)] = 0;
+                if(p1.vx != 0) fb.fb_p[(p1y-ky)*fb.width + (p1x-kx)] = 0;
+                if(p2.vx != 0) fb.fb_p[(p2y-ky)*fb.width + (p2x-kx)] = 0;
+                if(ball.vx != 0) fb.fb_p[(by-ky)*fb.width + (bx-kx)] = 0;
             }
         }
     }
@@ -379,13 +403,21 @@ void statePlaying() {
     }
     
     // test
-    printf("p1(%f, %f) : [%f, %f] : [%f, %f] : [%f, %f]\n", p1.x, p1.y, p1.vx, p1.vy, p1.ax, p1.ay, mouse1_e.x, mouse1_e.y);
+    //printf("p1(%f, %f) : [%f, %f] : [%f, %f] : [%f, %f]\n", p1.x, p1.y, p1.vx, p1.vy, p1.ax, p1.ay, mouse1_e.x, mouse1_e.y);
 }
 void stateGameFinish() {
+    if(win_player == 1) p1.score++;
+    else if(win_player == 2) p2.score++;
+    printf("%d:%d\n", p1.score, p2.score);
     
+    fnd_write(p1.score*1000 + p2.score);
+    
+    if(p1.score + p2.score > 5) state = STATE_GAMEOVER;
+    else state = STATE_INIT;
 }
 void stateGameOver() {
-    
+    printf("Game over\n");
+    exit(0);
 }
 
 
