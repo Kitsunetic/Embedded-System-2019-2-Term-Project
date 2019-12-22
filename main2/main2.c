@@ -11,6 +11,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <pthread.h>
+#include "circle.h"
 
 #define TIMESCALE           0.1
 
@@ -189,20 +190,21 @@ void statePlaying() {
     struct input_event buf;
     double dx, dy, dvx, dvy, len, force, theta, m1, m2;
     int i, kx, ky, p1x, p1y, p2x, p2y, bx, by;
+    uint32_t p1c, p2c, bc;
     
     // Clear screen
-    if(++clearScreenCounter > 500) {
+    if(++clearScreenCounter > 1000) {
         clearScreen(&fb);
         clearScreenCounter = 0;
     }
     
     // Goal check
-    if(ball.x >= fb.width-BALL_R && fb.height/3 <= ball.y && ball.y <= fb.height*2/3) {
+    if(ball.x >= fb.width-BALL_R*3 && fb.height*2/4 <= ball.y && ball.y <= fb.height*3/4) {
         // player0 win
         state = STATE_GAME_FINISH;
         win_player = 1;
         return;
-    } else if(ball.x <= BALL_R && fb.height/3 <= ball.y && ball.y <= fb.height*2/3) {
+    } else if(ball.x <= BALL_R*3 && fb.height*2/4 <= ball.y && ball.y <= fb.height*3/4) {
         // player1 win
         state = STATE_GAME_FINISH;
         win_player = 2;
@@ -255,18 +257,18 @@ void statePlaying() {
     p2.vy   *= 0.999;
     ball.vx *= 0.999;
     ball.vy *= 0.999;
-    p1.ax   *= 0.5;
-    p1.ay   *= 0.5;
-    p2.ax   *= 0.5;
-    p2.ay   *= 0.5;
-    ball.ax *= 0.5;
-    ball.ay *= 0.5;
+    p1.ax   *= 0.1;
+    p1.ay   *= 0.1;
+    p2.ax   *= 0.1;
+    p2.ay   *= 0.1;
+    ball.ax *= 0.1;
+    ball.ay *= 0.1;
     
     // Change acceleration using mouse
-    p1.ax = mouse1_e.x;
-    p1.ay = mouse1_e.y;
-    p2.ax = mouse2_e.x;
-    p2.ay = mouse2_e.y;
+    p1.ax = mouse1_e.x*0.3;
+    p1.ay = mouse1_e.y*0.3;
+    p2.ax = mouse2_e.x*0.3;
+    p2.ay = mouse2_e.y*0.3;
     mouse1_e.x = 0;
     mouse1_e.y = 0;
     mouse2_e.x = 0;
@@ -283,16 +285,14 @@ void statePlaying() {
     // Remove player and ball from screen
     p1x = p1.x; p1y = p1.y;
     p2x = p2.x; p2y = p2.y;
-    for(ky = -10; ky <= 10; ky++) {
-        for(kx = -player_fx[ky+10]; kx <= player_fx[ky+10]; kx++) {
-            fb.fb_p[(p1y+ky)*fb.width + (p1x+kx)] = 0;
-            fb.fb_p[(p2y+ky)*fb.width + (p2x+kx)] = 0;
-        }
-    }
     bx = ball.x; by = ball.y;
-    for(ky = -8; ky <= 8; ky++) {
-        for(kx = -player_fx[ky+8]; kx <= player_fx[ky+8]; kx++) {
-            fb.fb_p[(by+ky)*fb.width + (bx+kx)] = 0;
+    for(ky = -PLAYER_R; ky <= PLAYER_R; ky++) {
+        for(kx = -PLAYER_R; kx <= PLAYER_R; kx++) {
+            if(CIRCLE[(ky+PLAYER_R)*81 + (kx+PLAYER_R)]) {
+                fb.fb_p[(p1y-ky)*fb.width + (p1x-kx)] = 0;
+                fb.fb_p[(p2y-ky)*fb.width + (p2x-kx)] = 0;
+                fb.fb_p[(by-ky)*fb.width + (bx-kx)] = 0;
+            }
         }
     }
     
@@ -364,19 +364,17 @@ void statePlaying() {
     // Draw player and ball from screen
     p1x = p1.x; p1y = p1.y;
     p2x = p2.x; p2y = p2.y;
-    uint32_t p1c = makePixel(255, 0, 0);
-    uint32_t p2c = makePixel(0, 0, 255);
-    for(ky = -10; ky <= 10; ky++) {
-        for(kx = -player_fx[ky+10]; kx <= player_fx[ky+10]; kx++) {
-            fb.fb_p[(p1y+ky)*fb.width + (p1x+kx)] = p1c;
-            fb.fb_p[(p2y+ky)*fb.width + (p2x+kx)] = p2c;
-        }
-    }
     bx = ball.x; by = ball.y;
-    uint32_t bc = makePixel(0, 255, 0);
-    for(ky = -8; ky <= 8; ky++) {
-        for(kx = -player_fx[ky+8]; kx <= player_fx[ky+8]; kx++) {
-            fb.fb_p[(by+ky)*fb.width + (bx+kx)] = bc;
+    p1c = makePixel(255, 0, 0);
+    p2c = makePixel(0, 0, 255);
+    bc = makePixel(0, 255, 0);
+    for(ky = -PLAYER_R; ky <= PLAYER_R; ky++) {
+        for(kx = -PLAYER_R; kx <= PLAYER_R; kx++) {
+            if(CIRCLE[(ky+PLAYER_R)*81 + (kx+PLAYER_R)]) {
+                fb.fb_p[(p1y-ky)*fb.width + (p1x-kx)] = p1c;
+                fb.fb_p[(p2y-ky)*fb.width + (p2x-kx)] = p2c;
+                fb.fb_p[(by-ky)*fb.width + (bx-kx)] = bc;
+            }
         }
     }
     
